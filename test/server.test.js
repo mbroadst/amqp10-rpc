@@ -1,7 +1,7 @@
 'use strict';
 var amqp = require('amqp10'),
     rpc = require('../lib'),
-    expect = require('chai').expect;
+    config = require('./config');
 
 var test = {};
 describe('server', function() {
@@ -9,6 +9,7 @@ describe('server', function() {
   beforeEach(function() {
     if (!!test.client) delete test.client;
     test.client = new amqp.Client();
+    return test.client.connect(config.address);
   });
 
   afterEach(function() {
@@ -16,8 +17,14 @@ describe('server', function() {
       .then(function() { delete test.client; });
   });
 
-  it('should put the lotion on', function() {
-    expect('this').to.eql('that');
+  it('should allow binding a method to an rpc server', function(done) {
+    test.client.createRpcServer('amq.topic')
+      .then(function(server) {
+        server.bind('testMethod', function() { done(); });
+        return test.client.createSender('amq.topic');
+      })
+      .then(function(sender) {
+        return sender.send({ method: 'testMethod' });
+      });
   });
-
 });
