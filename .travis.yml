@@ -12,6 +12,8 @@ before_install:
 
 before_script:
   - sudo /etc/init.d/qpidd restart
+  - sudo qpid-config add exchange topic rpc.request
+  - sudo qpid-config add exchange topic rpc.response
 
 script:
   - make test
