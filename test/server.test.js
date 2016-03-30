@@ -105,6 +105,48 @@ describe('basic behavior', function() {
         });
       });
   });
+
+  it('should allow binding a method with parameters', function(done) {
+   return test.client.createRpcServer('rpc.request')
+      .then(function(server) {
+        server.bind('testMethod', function(one, two, three) {
+          expect(one).to.eql(1);
+          expect(two).to.eql('two');
+          expect(three).to.eql([1, 2, 3]);
+          done();
+        });
+
+        return test.client.createSender('rpc.request');
+      })
+      .then(function(sender) {
+        return sender.send({ method: 'testMethod', params: [1, 'two', [1,2,3]] }, {
+          properties: { replyTo: 'rpc.response' }
+        });
+      });
+  });
+
+  it('should allow binding a method with parameters (by name)', function(done) {
+   return test.client.createRpcServer('rpc.request')
+      .then(function(server) {
+        server.bind('testMethod', function(one, two, three) {
+          expect(one).to.eql(1);
+          expect(two).to.eql('two');
+          expect(three).to.eql([1, 2, 3]);
+          done();
+        });
+
+        return test.client.createSender('rpc.request');
+      })
+      .then(function(sender) {
+        return sender.send({
+          method: 'testMethod',
+          params: { three: [1,2,3], two: 'two', one: 1 }
+        }, {
+          properties: { replyTo: 'rpc.response' }
+        });
+      });
+  });
+
 }); // basic behavior
 
 }); // server
