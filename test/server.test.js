@@ -26,6 +26,12 @@ TestFixture.prototype.teardown = function() {
     });
 };
 
+function expectResult(message, result) {
+  expect(message.body).to.exist;
+  expect(message.body).to.have.key('result');
+  expect(message.body.result).to.eql(result);
+}
+
 var test = new TestFixture();
 describe('server', function() {
 
@@ -94,9 +100,10 @@ describe('basic behavior', function() {
   afterEach(function() { return test.teardown(); });
 
   it('should allow binding a method to an rpc server', function(done) {
-   return test.client.createRpcServer('rpc.request')
+    test.receiver.on('message', function(m) { expectResult(m, null); done(); });
+    return test.client.createRpcServer('rpc.request')
       .then(function(server) {
-        server.bind('testMethod', function() { done(); });
+        server.bind('testMethod', function() {});
         return test.client.createSender('rpc.request');
       })
       .then(function(sender) {
@@ -107,13 +114,13 @@ describe('basic behavior', function() {
   });
 
   it('should allow binding a method with parameters', function(done) {
-   return test.client.createRpcServer('rpc.request')
+    test.receiver.on('message', function(m) { expectResult(m, null); done(); });
+    return test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function(one, two, three) {
           expect(one).to.eql(1);
           expect(two).to.eql('two');
           expect(three).to.eql([1, 2, 3]);
-          done();
         });
 
         return test.client.createSender('rpc.request');
@@ -126,13 +133,13 @@ describe('basic behavior', function() {
   });
 
   it('should allow binding a method with parameters (by name)', function(done) {
-   return test.client.createRpcServer('rpc.request')
+    test.receiver.on('message', function(m) { expectResult(m, null); done(); });
+    return test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function(one, two, three) {
           expect(one).to.eql(1);
           expect(two).to.eql('two');
           expect(three).to.eql([1, 2, 3]);
-          done();
         });
 
         return test.client.createSender('rpc.request');
@@ -147,6 +154,26 @@ describe('basic behavior', function() {
       });
   });
 
+  it('should return valid responses for valid requests', function(done) {
+    test.receiver.on('message', function(m) {
+      expectResult(m, 'hello world');
+      done();
+    });
+
+    return test.client.createRpcServer('rpc.request')
+      .then(function(server) {
+        server.bind('testMethod', function() {
+          return 'hello world';
+        });
+
+        return test.client.createSender('rpc.request');
+      })
+      .then(function(sender) {
+        return sender.send({ method: 'testMethod' }, {
+          properties: { replyTo: 'rpc.response' }
+        });
+      });
+  });
 }); // basic behavior
 
 }); // server
