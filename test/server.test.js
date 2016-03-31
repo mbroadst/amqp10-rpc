@@ -26,10 +26,22 @@ TestFixture.prototype.teardown = function() {
     });
 };
 
-function expectResult(message, result) {
+function expectResult(message, correlationId, result) {
+  expect(message.properties).to.exist;
+  expect(message.properties.correlationId).to.eql(correlationId);
   expect(message.body).to.exist;
   expect(message.body).to.have.key('result');
   expect(message.body.result).to.eql(result);
+}
+
+function expectError(message, correlationId, code, errorMessage) {
+  expect(message.properties).to.exist;
+  expect(message.properties.correlationId).to.eql(correlationId);
+  expect(message.body).to.exist;
+  expect(message.body).to.have.key('error');
+  var error = message.body.error;
+  expect(error.code).to.eql(code);
+  expect(error.message).to.eql(errorMessage);
 }
 
 var test = new TestFixture();
@@ -52,11 +64,7 @@ describe('errors', function() {
 
   it('should return an error if request body is not an object', function(done) {
     test.receiver.on('message', function(m) {
-      expect(m.body).to.exist;
-      expect(m.body).to.have.key('error');
-      var error = m.body.error;
-      expect(error.code).to.eql(errors.ParseError);
-      expect(error.message).to.eql('Unexpected token i');
+      expectError(m, 'llama', errors.ParseError, 'Unexpected token i');
       done();
     });
 
@@ -66,18 +74,14 @@ describe('errors', function() {
     ])
     .spread(function(server, sender) {
       return sender.send('invalid message', {
-        properties: { replyTo: 'rpc.response' }
+        properties: { replyTo: 'rpc.response', correlationId: 'llama' }
       });
     });
   });
 
   it('should return an error if no method was provided', function(done) {
     test.receiver.on('message', function(m) {
-      expect(m.body).to.exist;
-      expect(m.body).to.have.key('error');
-      var error = m.body.error;
-      expect(error.code).to.eql(errors.InvalidRequest);
-      expect(error.message).to.eql('Missing required property: method');
+      expectError(m, 'llama', errors.InvalidRequest, 'Missing required property: method');
       done();
     });
 
@@ -87,8 +91,25 @@ describe('errors', function() {
     ])
     .spread(function(server, sender) {
       return sender.send({ mthd: 'testMethod' }, {
-        properties: { replyTo: 'rpc.response' }
+        properties: { replyTo: 'rpc.response', correlationId: 'llama' }
       });
+    });
+  });
+
+  it('should print errors to log if no replyTo or correlationId exist', function(done) {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createSender('rpc.request')
+    ])
+    .spread(function(server, sender) {
+      server._logger = {
+        error: function(m) {
+          expect(m).to.exist;
+          done();
+        }
+      };
+
+      return sender.send({ mthd: 'testMethod' });
     });
   });
 
@@ -100,7 +121,7 @@ describe('basic behavior', function() {
   afterEach(function() { return test.teardown(); });
 
   it('should allow binding a method to an rpc server', function(done) {
-    test.receiver.on('message', function(m) { expectResult(m, null); done(); });
+    test.receiver.on('message', function(m) { expectResult(m, 'llama', null); done(); });
     return test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function() {});
@@ -108,13 +129,13 @@ describe('basic behavior', function() {
       })
       .then(function(sender) {
         return sender.send({ method: 'testMethod' }, {
-          properties: { replyTo: 'rpc.response' }
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' }
         });
       });
   });
 
   it('should allow binding a method with parameters', function(done) {
-    test.receiver.on('message', function(m) { expectResult(m, null); done(); });
+    test.receiver.on('message', function(m) { expectResult(m, 'llama', null); done(); });
     return test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function(one, two, three) {
@@ -127,13 +148,13 @@ describe('basic behavior', function() {
       })
       .then(function(sender) {
         return sender.send({ method: 'testMethod', params: [1, 'two', [1,2,3]] }, {
-          properties: { replyTo: 'rpc.response' }
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' }
         });
       });
   });
 
   it('should allow binding a method with parameters (by name)', function(done) {
-    test.receiver.on('message', function(m) { expectResult(m, null); done(); });
+    test.receiver.on('message', function(m) { expectResult(m, 'llama', null); done(); });
     return test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function(one, two, three) {
@@ -149,23 +170,52 @@ describe('basic behavior', function() {
           method: 'testMethod',
           params: { three: [1,2,3], two: 'two', one: 1 }
         }, {
-          properties: { replyTo: 'rpc.response' }
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' }
         });
       });
   });
 
   it('should return valid responses for valid requests', function(done) {
     test.receiver.on('message', function(m) {
-      expectResult(m, 'hello world');
+      expectResult(m, 'llama', 'hello world');
       done();
     });
 
     return test.client.createRpcServer('rpc.request')
       .then(function(server) {
+        server.bind('testMethod', function() { return 'hello world'; });
+        return test.client.createSender('rpc.request');
+      })
+      .then(function(sender) {
+        return sender.send({ method: 'testMethod' }, {
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+        });
+      });
+  });
+
+  it('should not return a value for notifications (no replyTo or correlationId)', function(done) {
+    test.receiver.on('message', function(m) { expect(m).to.not.exist; });
+    return test.client.createRpcServer('rpc.request')
+      .then(function(server) {
         server.bind('testMethod', function() {
+          setTimeout(done, 50);
           return 'hello world';
         });
 
+        return test.client.createSender('rpc.request');
+      })
+      .then(function(sender) { return sender.send({ method: 'testMethod' }); });
+  });
+
+  it('should return value to broadcast request (with replyTo, no correlationId)', function(done) {
+    test.receiver.on('message', function(m) {
+      expectResult(m, null, 'hello world');
+      done();
+    });
+
+    return test.client.createRpcServer('rpc.request')
+      .then(function(server) {
+        server.bind('testMethod', function() { return 'hello world'; });
         return test.client.createSender('rpc.request');
       })
       .then(function(sender) {
@@ -174,6 +224,7 @@ describe('basic behavior', function() {
         });
       });
   });
+
 }); // basic behavior
 
 }); // server
