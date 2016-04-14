@@ -67,6 +67,51 @@ describe('basic behavior', function() {
     .then(function(result) { expect(result).to.eql([ 1, 'two', false ]); });
   });
 
+  it('should support notification', function(done) {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request')
+    ])
+    .spread(function(server, client) {
+      server.bind('testNotification', done);
+      return client.notify('testNotification');
+    });
+  });
+
+  it('should support notification with params (array)', function(done) {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request')
+    ])
+    .spread(function(server, client) {
+      server.bind('testNotification', function(one, two, three) {
+        expect(one).to.eql(1);
+        expect(two).to.eql('two');
+        expect(three).to.eql(false);
+        done();
+      });
+
+      return client.notify('testNotification', [ 1, 'two', false ]);
+    });
+  });
+
+  it('should support notification with params (named)', function(done) {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request')
+    ])
+    .spread(function(server, client) {
+      server.bind('testNotification', function(one, two, three) {
+        expect(one).to.eql(1);
+        expect(two).to.eql('two');
+        expect(three).to.eql(false);
+        done();
+      });
+
+      return client.notify('testNotification', { three: false, one: 1, two: 'two' });
+    });
+  });
+
 }); // basic behavior
 
 describe('errors', function() {
