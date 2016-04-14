@@ -35,8 +35,21 @@ describe('basic behavior', function() {
     .spread(function(server, client) {
       server.bind('testMethod', function() {});
       return client.call('testMethod');
-    })
-    .then(function(result) { expect(result).to.be.null; });
+    });
+  });
+
+  it('should support call with a single parameter', function() {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request')
+    ])
+    .spread(function(server, client) {
+      server.bind('testMethod', function(one) {
+        expect(one).to.eql(1);
+      });
+
+      return client.call('testMethod', 1);
+    });
   });
 
   it('should support requests with params (array)', function() {
@@ -45,8 +58,8 @@ describe('basic behavior', function() {
       test.client.createRpcClient('rpc.request')
     ])
     .spread(function(server, client) {
-      server.bind('testMethod', function(one, two, three) {
-        return [ one, two, three ];
+      server.bind('testMethod', function(one) {
+        return one;
       });
       return client.call('testMethod', [ 1, 'two', false ]);
     })
@@ -67,6 +80,20 @@ describe('basic behavior', function() {
     .then(function(result) { expect(result).to.eql([ 1, 'two', false ]); });
   });
 
+  it('should support requests with params (spread)', function() {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request')
+    ])
+    .spread(function(server, client) {
+      server.bind('testMethod', function(one, two, three) {
+        return [ one, two, three ];
+      });
+      return client.call('testMethod', 1, 'two', false);
+    })
+    .then(function(result) { expect(result).to.eql([ 1, 'two', false ]); });
+  });
+
   it('should support notification', function(done) {
     return Promise.all([
       test.client.createRpcServer('rpc.request'),
@@ -78,16 +105,29 @@ describe('basic behavior', function() {
     });
   });
 
+  it('should support notification with a single parameter', function(done) {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request')
+    ])
+    .spread(function(server, client) {
+      server.bind('testNotification', function(one) {
+        expect(one).to.eql(1);
+        done();
+      });
+
+      return client.notify('testNotification', 1);
+    });
+  });
+
   it('should support notification with params (array)', function(done) {
     return Promise.all([
       test.client.createRpcServer('rpc.request'),
       test.client.createRpcClient('rpc.request')
     ])
     .spread(function(server, client) {
-      server.bind('testNotification', function(one, two, three) {
-        expect(one).to.eql(1);
-        expect(two).to.eql('two');
-        expect(three).to.eql(false);
+      server.bind('testNotification', function(one) {
+        expect(one).to.eql([ 1, 'two', false ]);
         done();
       });
 
@@ -109,6 +149,23 @@ describe('basic behavior', function() {
       });
 
       return client.notify('testNotification', { three: false, one: 1, two: 'two' });
+    });
+  });
+
+  it('should support notification with params (spread)', function(done) {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request')
+    ])
+    .spread(function(server, client) {
+      server.bind('testNotification', function(one, two, three) {
+        expect(one).to.eql(1);
+        expect(two).to.eql('two');
+        expect(three).to.eql(false);
+        done();
+      });
+
+      return client.notify('testNotification', 1, 'two', false);
     });
   });
 
