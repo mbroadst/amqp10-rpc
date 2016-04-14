@@ -25,6 +25,7 @@
   "homepage": "https://github.com/mbroadst/amqp10-rpc#readme",
   "dependencies": {
     "bluebird": "^3.3.4",
+    "joi": "^8.0.5",
     "uuid": "^2.0.1"
   },
   "devDependencies": {

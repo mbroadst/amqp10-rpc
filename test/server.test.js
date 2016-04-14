@@ -1,5 +1,6 @@
 'use strict';
 var Promise = require('bluebird'),
+    Joi = require('joi'),
     amqp = require('amqp10'),
     rpc = require('../lib'),
     errors = require('../lib/errors'),
@@ -273,5 +274,109 @@ describe('basic behavior', function() {
   });
 
 }); // basic behavior
+
+describe('validation', function() {
+  before(function() { amqp.use(rpc()); });
+  beforeEach(function() {
+    return test.setup()
+      .then(function() { return test.client.createRpcServer('rpc.request'); })
+      .then(function(server) {
+        test.server = server;
+        test.server.bind({
+          method: 'testMethod',
+          params: {
+            one: Joi.number().integer().min(1900).max(2013).required(),
+            two: Joi.string().required(),
+            three: Joi.boolean().required()
+          }
+        }, function(one, two, three) {
+          return true;
+        });
+      });
+  });
+
+  afterEach(function() {
+    return test.teardown()
+      .then(function() { delete test.server; });
+  });
+
+  describe('errors', function() {
+    it('should throw an error when defining validations for unknown parameters (by Object)', function() {
+      expect(function() {
+        test.server.bind({
+          method: 'invalid',
+          params: {
+            one: Joi.string().required()
+          }
+        }, function(first) {});
+      }).to.throw(errors.InvalidValidationDefinitionError);
+    });
+
+    it('should throw an error if validation count > parameter count (by Array)', function() {
+      expect(function() {
+        test.server.bind({
+          method: 'invalid',
+          params: [ Joi.string().required(), Joi.string().required() ]
+        }, function(first) {});
+      }).to.throw(errors.InvalidValidationDefinitionError);
+    });
+  });
+
+  it('should allow validating parameters based on schema', function(done) {
+    test.receiver.on('message', function(m) {
+      expect(m.body).to.have.key('result');
+      expect(m.body.result).to.equal(true);
+      done();
+    });
+
+    return test.client.createSender('rpc.request')
+      .then(function(sender) {
+        return sender.send({ method: 'testMethod', params: [ 1901, 'two', false ] }, {
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+        });
+      });
+  });
+
+  it('should fill validation array with null for parameters lacking validation (by Array)', function() {
+    test.server.bind({
+      method: 'testValidationArrayPositions',
+      params: [ Joi.string().required() ]
+    }, function(first, second) {});
+
+    var definition = test.server._methodHandlers.testValidationArrayPositions;
+    expect(definition.validation).to.have.length(2);
+    expect(definition.validation[0]).to.exist;
+    expect(definition.validation[1]).to.be.null;
+  });
+
+  it('should fill validation array with null for parameters lacking validation (by Object)', function() {
+    test.server.bind({
+      method: 'testValidationObjectPositions',
+      params: {
+        first: Joi.string().required()
+      }
+    }, function(first, second) {});
+
+    var definition = test.server._methodHandlers.testValidationObjectPositions;
+    expect(definition.validation).to.have.length(2);
+    expect(definition.validation[0]).to.exist;
+    expect(definition.validation[1]).to.be.null;
+  });
+
+  it('should return an error if validation fails', function(done) {
+    test.receiver.on('message', function(m) {
+      expect(m.body).to.have.key('error');
+      done();
+    });
+
+    return test.client.createSender('rpc.request')
+      .then(function(sender) {
+        return sender.send({ method: 'testMethod', params: [ 'notANumber', -1, 'notABoolean' ] }, {
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+        });
+      });
+  });
+
+}); // validation
 
 }); // server
