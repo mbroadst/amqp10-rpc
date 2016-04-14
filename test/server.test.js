@@ -3,6 +3,7 @@ var Promise = require('bluebird'),
     amqp = require('amqp10'),
     rpc = require('../lib'),
     errors = require('../lib/errors'),
+    ProtocolError = errors.ProtocolError,
     config = require('./config'),
     expect = require('chai').expect;
 
@@ -64,7 +65,7 @@ describe('errors', function() {
 
   it('should return an error if request body is not an object', function(done) {
     test.receiver.on('message', function(m) {
-      expectError(m, 'llama', errors.ParseError, 'Unexpected token i');
+      expectError(m, 'llama', ProtocolError.ParseError, 'Unexpected token i');
       done();
     });
 
@@ -81,7 +82,7 @@ describe('errors', function() {
 
   it('should return an error if no method was provided', function(done) {
     test.receiver.on('message', function(m) {
-      expectError(m, 'llama', errors.InvalidRequest, 'Missing required property: method');
+      expectError(m, 'llama', ProtocolError.InvalidRequest, 'Missing required property: method');
       done();
     });
 
