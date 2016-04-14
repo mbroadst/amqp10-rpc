@@ -59,7 +59,7 @@ describe('errors', function() {
         server.bind('testMethod', function() {});
         expect(function() {
           server.bind('testMethod', function() {});
-        }).to.throw('Duplicate method bound: testMethod');
+        }).to.throw(errors.DuplicateMethodError);
       });
   });
 
