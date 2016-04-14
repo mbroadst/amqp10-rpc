@@ -63,6 +63,24 @@ describe('errors', function() {
       });
   });
 
+  it('should throw an error when trying to bind an anonymous function', function() {
+   return test.client.createRpcServer('rpc.request')
+      .then(function(server) {
+        expect(function() {
+          server.bind(function() {});
+        }).to.throw(errors.InvalidMethodNameError);
+      });
+  });
+
+  it('should throw an error when trying to bind a method with no name in definition', function() {
+   return test.client.createRpcServer('rpc.request')
+      .then(function(server) {
+        expect(function() {
+          server.bind({ validation: [] }, function() {});
+        }).to.throw(errors.InvalidMethodDefinitionError);
+      });
+  });
+
   it('should return an error if request body is not an object', function(done) {
     test.receiver.on('message', function(m) {
       expectError(m, 'llama', ProtocolError.ParseError, 'Unexpected token i');
@@ -126,6 +144,34 @@ describe('basic behavior', function() {
     return test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function() {});
+        return test.client.createSender('rpc.request');
+      })
+      .then(function(sender) {
+        return sender.send({ method: 'testMethod' }, {
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+        });
+      });
+  });
+
+  it('should allow binding a named method to an rpc server', function(done) {
+    test.receiver.on('message', function(m) { expectResult(m, 'llama', null); done(); });
+    return test.client.createRpcServer('rpc.request')
+      .then(function(server) {
+        server.bind(function testMethod() {});
+        return test.client.createSender('rpc.request');
+      })
+      .then(function(sender) {
+        return sender.send({ method: 'testMethod' }, {
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+        });
+      });
+  });
+
+  it('should allow binding a method to an rpc server using a definition object', function(done) {
+    test.receiver.on('message', function(m) { expectResult(m, 'llama', null); done(); });
+    return test.client.createRpcServer('rpc.request')
+      .then(function(server) {
+        server.bind({ method: 'testMethod' }, function() {});
         return test.client.createSender('rpc.request');
       })
       .then(function(sender) {
