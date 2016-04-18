@@ -241,6 +241,24 @@ describe('basic behavior', function() {
       });
   });
 
+  it('should support Promises returned from bound method', function(done) {
+    test.receiver.on('message', function(m) {
+      expectResult(m, 'llama', 'hello world');
+      done();
+    });
+
+    return test.client.createRpcServer('rpc.request')
+      .then(function(server) {
+        server.bind('testMethod', function() { return Promise.resolve('hello world'); });
+        return test.client.createSender('rpc.request');
+      })
+      .then(function(sender) {
+        return sender.send({ method: 'testMethod' }, {
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+        });
+      });
+  });
+
   it('should not return a value for notifications (no replyTo or correlationId)', function(done) {
     test.receiver.on('message', function(m) { expect(m).to.not.exist; });
     return test.client.createRpcServer('rpc.request')
@@ -272,7 +290,6 @@ describe('basic behavior', function() {
         });
       });
   });
-
 }); // basic behavior
 
 describe('validation', function() {
