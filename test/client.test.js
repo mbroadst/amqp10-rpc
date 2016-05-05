@@ -184,7 +184,7 @@ describe('errors', function() {
     .spread(function(server, client) { return client.call('testMethod'); })
     .then(function() { expect(false).to.equal(true, 'this shouldnt happen'); })
     .catch(function(response) {
-      expect(response).to.have.keys(['code', 'message']);
+      expect(response).to.have.keys(['code', 'message', 'data']);
       expect(response.code).to.equal(ProtocolError.MethodNotFound);
       expect(response.message).to.equal('No such method: testMethod');
     });
