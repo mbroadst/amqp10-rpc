@@ -2,7 +2,7 @@
 var Promise = require('bluebird'),
     amqp = require('amqp10'),
     rpc = require('../lib'),
-    ProtocolError = require('../lib/errors').ProtocolError,
+    errors = require('../lib/errors'),
     config = require('./config'),
     expect = require('chai').expect;
 
@@ -185,7 +185,7 @@ describe('errors', function() {
     .then(function() { expect(false).to.equal(true, 'this shouldnt happen'); })
     .catch(function(response) {
       expect(response).to.have.keys(['code', 'message', 'data']);
-      expect(response.code).to.equal(ProtocolError.MethodNotFound);
+      expect(response.code).to.equal((new errors.MethodNotFoundError()).code);
       expect(response.message).to.equal('No such method: testMethod');
     });
   });

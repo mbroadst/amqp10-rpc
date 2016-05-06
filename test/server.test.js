@@ -4,7 +4,6 @@ var Promise = require('bluebird'),
     amqp = require('amqp10'),
     rpc = require('../lib'),
     errors = require('../lib/errors'),
-    ProtocolError = errors.ProtocolError,
     config = require('./config'),
     expect = require('chai').expect;
 
@@ -36,12 +35,13 @@ function expectResult(message, correlationId, result) {
   expect(message.body.result).to.eql(result);
 }
 
-function expectError(message, correlationId, code, errorMessage) {
+function expectError(message, correlationId, ErrorType, errorMessage) {
   expect(message.properties).to.exist;
   expect(message.properties.correlationId).to.eql(correlationId);
   expect(message.body).to.exist;
   expect(message.body).to.have.key('error');
   var error = message.body.error;
+  var code = (new ErrorType()).code;
   expect(error.code).to.eql(code);
   expect(error.message).to.eql(errorMessage);
 }
@@ -84,7 +84,7 @@ describe('errors', function() {
 
   it('should return an error if request body is not an object', function(done) {
     test.receiver.on('message', function(m) {
-      expectError(m, 'llama', ProtocolError.ParseError, 'Unexpected token i');
+      expectError(m, 'llama', errors.ParseError, 'Unexpected token i');
       done();
     });
 
@@ -101,7 +101,7 @@ describe('errors', function() {
 
   it('should return an error if no method was provided', function(done) {
     test.receiver.on('message', function(m) {
-      expectError(m, 'llama', ProtocolError.InvalidRequest, 'Missing required property: method');
+      expectError(m, 'llama', errors.InvalidRequestError, 'Missing required property: method');
       done();
     });
 
@@ -290,6 +290,7 @@ describe('basic behavior', function() {
         });
       });
   });
+
 }); // basic behavior
 
 describe('validation', function() {
