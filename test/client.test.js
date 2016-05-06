@@ -3,6 +3,7 @@ var Promise = require('bluebird'),
     amqp = require('amqp10'),
     rpc = require('../lib'),
     errors = require('../lib/errors'),
+    ErrorCode = errors.ErrorCode,
     config = require('./config'),
     expect = require('chai').expect;
 
@@ -184,8 +185,9 @@ describe('errors', function() {
     .spread(function(server, client) { return client.call('testMethod'); })
     .then(function() { expect(false).to.equal(true, 'this shouldnt happen'); })
     .catch(function(response) {
+      expect(response).to.be.an.instanceOf(errors.MethodNotFoundError);
       expect(response).to.have.keys(['code', 'message', 'data']);
-      expect(response.code).to.equal((new errors.MethodNotFoundError()).code);
+      expect(response.code).to.equal(ErrorCode.MethodNotFound);
       expect(response.message).to.equal('No such method: testMethod');
     });
   });
