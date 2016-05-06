@@ -293,6 +293,70 @@ describe('basic behavior', function() {
 
 }); // basic behavior
 
+describe('batch messages', function() {
+  before(function() { amqp.use(rpc()); });
+  afterEach(function() { return test.teardown(); });
+  beforeEach(function() {
+    return test.setup()
+      .then(function() { return test.client.createRpcServer('rpc.request'); })
+      .then(function(server) {
+        server.bind('firstMethod', function() { return 1; });
+        server.bind('secondMethod', function() { return 'two'; });
+        server.bind('thirdMethod', function() { return true; });
+      });
+  });
+
+  it('should support batch messages', function(done) {
+    test.receiver.on('message', function(m) {
+      expect(m.properties).to.exist;
+      expect(m.properties.correlationId).to.eql('llama');
+      expect(m.body).to.exist;
+      expect(m.body).to.be.instanceof(Array);
+      expect(m.body[0].result).to.eql(1);
+      expect(m.body[1].result).to.eql('two');
+      expect(m.body[2].result).to.eql(true);
+      done();
+    });
+
+    return test.client.createSender('rpc.request')
+      .then(function(sender) {
+        return sender.send([
+          { method: 'firstMethod' },
+          { method: 'secondMethod' },
+          { method: 'thirdMethod' },
+        ], {
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+        });
+      });
+  });
+
+  it('should support errors within batch messages', function(done) {
+    test.receiver.on('message', function(m) {
+      expect(m.properties).to.exist;
+      expect(m.properties.correlationId).to.eql('llama');
+      expect(m.body).to.exist;
+      expect(m.body).to.be.instanceof(Array);
+      expect(m.body[0].result).to.eql(1);
+      expect(m.body[1]).to.have.key('error');
+      expect(m.body[2].result).to.eql(true);
+      done();
+    });
+
+    return test.client.createSender('rpc.request')
+      .then(function(sender) {
+        return sender.send([
+          { method: 'firstMethod' },
+          { method: 'zecondMerthad' },
+          { method: 'thirdMethod' },
+        ], {
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+        });
+      });
+  });
+
+
+}); // batch messages
+
 describe('validation', function() {
   before(function() { amqp.use(rpc()); });
   beforeEach(function() {
