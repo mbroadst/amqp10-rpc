@@ -197,6 +197,45 @@ describe('notify', function() {
     });
   });
 
+  it('should support raw rpc messages as first argument', function(done) {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request')
+    ])
+    .spread(function(server, client) {
+      server.bind('testNotification', function(one, two, three) {
+        expect(one).to.eql(1);
+        expect(two).to.eql('two');
+        expect(three).to.eql(false);
+        done();
+      });
+
+      return client.notify({ method: 'testNotification', params: [ 1, 'two', false ]});
+    });
+  });
+
+  it('should support batch notifications', function(done) {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request')
+    ])
+    .spread(function(server, client) {
+      var called = 0;
+      server.bind('testNotification', function(one, two, three) {
+        expect(one).to.eql(1);
+        expect(two).to.eql('two');
+        expect(three).to.eql(false);
+        called++;
+        if (called === 2) done();
+      });
+
+      return client.notify([
+        { method: 'testNotification', params: [ 1, 'two', false ] },
+        { method: 'testNotification', params: [ 1, 'two', false ] }
+      ]);
+    });
+  });
+
 }); // notify
 
 describe('errors', function() {
