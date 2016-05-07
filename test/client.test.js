@@ -214,6 +214,32 @@ describe('notify', function() {
     });
   });
 
+  it('should support request overrides when sending a raw request', function(done) {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request'),
+      test.client.createReceiver('amq.topic')
+    ])
+    .spread(function(server, client, receiver) {
+      receiver.on('message', function(m) {
+        expect(m.body).to.eql({ result: 'success' });
+        done();
+      });
+
+      server.bind('testNotification', function(one, two, three) {
+        expect(one).to.eql(1);
+        expect(two).to.eql('two');
+        expect(three).to.eql(false);
+        return 'success';
+      });
+
+      return client.notify(
+        { method: 'testNotification', params: [ 1, 'two', false ]},
+        { properties: { replyTo: 'amq.topic' } }
+      );
+    });
+  });
+
   it('should support batch notifications', function(done) {
     return Promise.all([
       test.client.createRpcServer('rpc.request'),
