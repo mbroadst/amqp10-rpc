@@ -23,7 +23,7 @@ TestFixture.prototype.teardown = function() {
 var test = new TestFixture();
 describe('client', function() {
 
-describe('basic behavior', function() {
+describe('call', function() {
   before(function() { amqp.use(rpc()); });
   beforeEach(function() { return test.setup(); });
   afterEach(function() { return test.teardown(); });
@@ -45,10 +45,7 @@ describe('basic behavior', function() {
       test.client.createRpcClient('rpc.request')
     ])
     .spread(function(server, client) {
-      server.bind('testMethod', function(one) {
-        expect(one).to.eql(1);
-      });
-
+      server.bind('testMethod', function(one) { expect(one).to.eql(1); });
       return client.call('testMethod', 1);
     });
   });
@@ -59,9 +56,7 @@ describe('basic behavior', function() {
       test.client.createRpcClient('rpc.request')
     ])
     .spread(function(server, client) {
-      server.bind('testMethod', function(one) {
-        return one;
-      });
+      server.bind('testMethod', function(one) { return one; });
       return client.call('testMethod', [ 1, 'two', false ]);
     })
     .then(function(result) { expect(result).to.eql([ 1, 'two', false ]); });
@@ -73,9 +68,7 @@ describe('basic behavior', function() {
       test.client.createRpcClient('rpc.request')
     ])
     .spread(function(server, client) {
-      server.bind('testMethod', function(one, two, three) {
-        return [ one, two, three ];
-      });
+      server.bind('testMethod', function(one, two, three) { return [ one, two, three ]; });
       return client.call('testMethod', { two: 'two', three: false, one: 1 });
     })
     .then(function(result) { expect(result).to.eql([ 1, 'two', false ]); });
@@ -87,13 +80,30 @@ describe('basic behavior', function() {
       test.client.createRpcClient('rpc.request')
     ])
     .spread(function(server, client) {
-      server.bind('testMethod', function(one, two, three) {
-        return [ one, two, three ];
-      });
+      server.bind('testMethod', function(one, two, three) { return [ one, two, three ]; });
       return client.call('testMethod', 1, 'two', false);
     })
     .then(function(result) { expect(result).to.eql([ 1, 'two', false ]); });
   });
+
+  it('should support raw rpc messages as first argument', function() {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request')
+    ])
+    .spread(function(server, client) {
+      server.bind('testMethod', function(one, two, three) { return [ one, two, three ]; });
+      return client.call({ method: 'testMethod', params: [ 1, 'two', false ]});
+    })
+    .then(function(result) { expect(result).to.eql([ 1, 'two', false ]); });
+  });
+
+}); // call
+
+describe('notify', function() {
+  before(function() { amqp.use(rpc()); });
+  beforeEach(function() { return test.setup(); });
+  afterEach(function() { return test.teardown(); });
 
   it('should support notification', function(done) {
     return Promise.all([
@@ -170,7 +180,7 @@ describe('basic behavior', function() {
     });
   });
 
-}); // basic behavior
+}); // notify
 
 describe('errors', function() {
   before(function() { amqp.use(rpc()); });
