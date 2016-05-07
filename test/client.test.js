@@ -98,6 +98,23 @@ describe('call', function() {
     .then(function(result) { expect(result).to.eql([ 1, 'two', false ]); });
   });
 
+  it('should support batch requests', function() {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request')
+    ])
+    .spread(function(server, client) {
+      server.bind('testMethod', function(one, two, three) { return [ one, two, three ]; });
+      return client.call([
+        { method: 'testMethod', params: [ 1, 'two', false ] },
+        { method: 'testMethod', params: [ 1, 'two', false ] }
+      ]);
+    })
+    .then(function(result) {
+      expect(result).to.eql([ [ 1, 'two', false ], [ 1, 'two', false ] ]);
+    });
+  });
+
 }); // call
 
 describe('notify', function() {
