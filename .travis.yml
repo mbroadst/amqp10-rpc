@@ -5,6 +5,7 @@ node_js:
   - '4'
 
 before_install:
+  - npm install -g codeclimate-test-reporter
   - sudo add-apt-repository ppa:qpid/testing -y
   - sudo apt-get update -q
   - sudo apt-get install qpidd qpid-tools
@@ -16,4 +17,7 @@ before_script:
   - sudo qpid-config add exchange topic rpc.response
 
 script:
-  - make test
+  - make coverage
+
+after_script:
+  - codeclimate-test-reporter < coverage/lcov.info

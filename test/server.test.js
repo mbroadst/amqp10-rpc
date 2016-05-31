@@ -42,7 +42,11 @@ function expectError(message, correlationId, code, errorMessage) {
   expect(message.body).to.have.key('error');
   var error = message.body.error;
   expect(error.code).to.eql(code);
-  expect(error.message).to.eql(errorMessage);
+  if (errorMessage instanceof RegExp) {
+    expect(error.message).to.match(errorMessage);
+  } else {
+    expect(error.message).to.eql(errorMessage);
+  }
 }
 
 var test = new TestFixture();
@@ -83,7 +87,7 @@ describe('errors', function() {
 
   it('should return an error if request body is not an object', function(done) {
     test.receiver.on('message', function(m) {
-      expectError(m, 'llama', ErrorCode.ParseError, 'Unexpected token i in JSON at position 0');
+      expectError(m, 'llama', ErrorCode.ParseError, /Unexpected token i/);
       done();
     });
 
