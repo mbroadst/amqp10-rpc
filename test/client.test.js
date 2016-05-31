@@ -115,6 +115,16 @@ describe('call', function() {
     });
   });
 
+  it('should support addresses with default subjects', function() {
+    return Promise.all([
+      test.client.createRpcServer('rpc.request/llama'),
+      test.client.createRpcClient('rpc.request/llama')
+    ])
+    .spread(function(server, client) {
+      server.bind('testMethod', function() {});
+      return client.call('testMethod');
+    });
+  });
 }); // call
 
 describe('notify', function() {
