@@ -1,6 +1,5 @@
 'use strict';
 var Promise = require('bluebird'),
-    Joi = require('joi'),
     amqp = require('amqp10'),
     rpc = require('../lib'),
     errors = require('../lib/errors'),
@@ -84,7 +83,7 @@ describe('errors', function() {
 
   it('should return an error if request body is not an object', function(done) {
     test.receiver.on('message', function(m) {
-      expectError(m, 'llama', ErrorCode.ParseError, 'Unexpected token i');
+      expectError(m, 'llama', ErrorCode.ParseError, 'Unexpected token i in JSON at position 0');
       done();
     });
 
@@ -367,9 +366,13 @@ describe('validation', function() {
         test.server.bind({
           method: 'testMethod',
           params: {
-            one: Joi.number().integer().min(1900).max(2013).required(),
-            two: Joi.string().required(),
-            three: Joi.boolean().required()
+            type: 'object',
+            properties: {
+              one: { type: 'integer', minimum: 1900, maximum: 2013, exclusiveMaximum: true },
+              two: { type: 'string' },
+              three: { type: 'boolean' }
+            },
+            required: [ 'two', 'three' ]
           }
         }, function(one, two, three) {
           return true;
@@ -383,22 +386,17 @@ describe('validation', function() {
   });
 
   describe('errors', function() {
-    it('should throw an error when defining validations for unknown parameters (by Object)', function() {
+    it('should throw an error when defining validations for unknown parameters', function() {
       expect(function() {
         test.server.bind({
           method: 'invalid',
           params: {
-            one: Joi.string().required()
+            type: 'object',
+            properties: {
+              one: { type: 'string' }
+            },
+            required: [ 'one' ]
           }
-        }, function(first) {});
-      }).to.throw(errors.InvalidValidationDefinitionError);
-    });
-
-    it('should throw an error if validation count > parameter count (by Array)', function() {
-      expect(function() {
-        test.server.bind({
-          method: 'invalid',
-          params: [ Joi.string().required(), Joi.string().required() ]
         }, function(first) {});
       }).to.throw(errors.InvalidValidationDefinitionError);
     });
@@ -417,32 +415,6 @@ describe('validation', function() {
           properties: { replyTo: 'rpc.response', correlationId: 'llama' }
         });
       });
-  });
-
-  it('should fill validation array with null for parameters lacking validation (by Array)', function() {
-    test.server.bind({
-      method: 'testValidationArrayPositions',
-      params: [ Joi.string().required() ]
-    }, function(first, second) {});
-
-    var definition = test.server._methodHandlers.testValidationArrayPositions;
-    expect(definition.validation).to.have.length(2);
-    expect(definition.validation[0]).to.exist;
-    expect(definition.validation[1]).to.be.null;
-  });
-
-  it('should fill validation array with null for parameters lacking validation (by Object)', function() {
-    test.server.bind({
-      method: 'testValidationObjectPositions',
-      params: {
-        first: Joi.string().required()
-      }
-    }, function(first, second) {});
-
-    var definition = test.server._methodHandlers.testValidationObjectPositions;
-    expect(definition.validation).to.have.length(2);
-    expect(definition.validation[0]).to.exist;
-    expect(definition.validation[1]).to.be.null;
   });
 
   it('should return an error if validation fails', function(done) {
