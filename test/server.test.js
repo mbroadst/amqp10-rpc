@@ -307,7 +307,7 @@ describe('basic behavior', function() {
 
     return test.client.createRpcServer('rpc.request')
       .then(function(server) {
-        server.bind('testMethod', function() { return { method: 'anotherMethod', params: [] } });
+        server.bind('testMethod', function() { return { method: 'anotherMethod', params: [] }; });
         return test.client.createSender('rpc.request');
       })
       .then(function(sender) {
