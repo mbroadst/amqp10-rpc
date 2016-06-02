@@ -294,6 +294,29 @@ describe('basic behavior', function() {
       });
   });
 
+  it('should bypass normal response if result is an rpc request', function(done) {
+    var resultRequest = { method: 'anotherMethod', params: [] };
+    test.receiver.on('message', function(m) {
+      expect(m.properties).to.exist;
+      expect(m.properties.correlationId).to.eql('llama');
+      expect(m.body).to.exist;
+      expect(m.body).to.not.have.key('result');
+      expect(m.body).to.eql(resultRequest);
+      done();
+    });
+
+    return test.client.createRpcServer('rpc.request')
+      .then(function(server) {
+        server.bind('testMethod', function() { return { method: 'anotherMethod', params: [] } });
+        return test.client.createSender('rpc.request');
+      })
+      .then(function(sender) {
+        return sender.send({ method: 'testMethod' }, {
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+        });
+      });
+  });
+
 }); // basic behavior
 
 describe('batch messages', function() {
@@ -356,7 +379,6 @@ describe('batch messages', function() {
         });
       });
   });
-
 
 }); // batch messages
 
