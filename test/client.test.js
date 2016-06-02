@@ -5,7 +5,10 @@ var Promise = require('bluebird'),
     errors = require('../lib/errors'),
     ErrorCode = errors.ErrorCode,
     config = require('./config'),
-    expect = require('chai').expect;
+    chai = require('chai'),
+    expect = chai.expect;
+
+chai.use(require('chai-as-promised'));
 
 function TestFixture() {}
 TestFixture.prototype.setup = function() {
@@ -305,6 +308,14 @@ describe('errors', function() {
       expect(response.code).to.equal(ErrorCode.MethodNotFound);
       expect(response.message).to.equal('No such method: testMethod');
     });
+  });
+
+  it('should reject a call on request timeout', function() {
+    return test.client.createRpcClient('rpc.request', { timeout: 50 })
+      .then(function(client) {
+        return expect(client.call('testMethod'))
+          .to.be.rejectedWith(errors.RequestTimeoutError, 'Request timed out');
+      });
   });
 
 }); // errors
