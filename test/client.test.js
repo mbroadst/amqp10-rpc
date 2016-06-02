@@ -39,6 +39,19 @@ describe('call', function() {
     });
   });
 
+  it('should support redirecting responses to predefined address', function(done) {
+    return Promise.all([
+      test.client.createReceiver('rpc.response'),
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request', { responseAddress: 'rpc.response' })
+    ])
+    .spread(function(responseLink, server, client) {
+      responseLink.on('message', function(msg) { done(); });
+      server.bind('testMethod', function(one) { expect(one).to.eql(1); });
+      return client.call('testMethod', 1);
+    });
+  });
+
   it('should support call with a single parameter', function() {
     return Promise.all([
       test.client.createRpcServer('rpc.request'),
