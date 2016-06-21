@@ -136,6 +136,29 @@ describe('errors', function() {
     });
   });
 
+  it('should catch operational errors and return them as error responses', function(done) {
+    test.receiver.on('message', function(m) {
+      expectError(m, 'llama', ErrorCode.InternalError, 'an error occurred');
+      done();
+    });
+
+    return Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createSender('rpc.request')
+    ])
+    .spread(function(server, sender) {
+      server.bind('testMethod', function() {
+        var err = new Error('an error occurred');
+        err.isOperational = true;
+        throw err;
+      });
+
+      return sender.send({ method: 'testMethod' }, {
+        properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+      });
+    });
+  });
+
 }); // errors
 
 describe('basic behavior', function() {
