@@ -482,4 +482,41 @@ describe('validation', function() {
 
 }); // validation
 
+describe('interceptor', function() {
+  before(function() { amqp.use(rpc()); });
+  beforeEach(function() { return test.setup(); });
+  afterEach(function() { return test.teardown(); });
+
+  it('should allow users to intercept the request process (for custom disposition)', function(done) {
+    var received = 0;
+    test.receiver.on('message', function(m) { done('this should not happen'); });
+    var interceptor = function(receiver, message, request) {
+      if (received === 0) {
+        receiver.release(message);
+        received++;
+        return false;
+      }
+
+      receiver.accept(message);
+      process.nextTick(function() { done(); });
+      return false;
+    };
+
+    return Promise.all([
+      test.client.createRpcServer('rpc.request.queue', { interceptor: interceptor }),
+      test.client.createSender('rpc.request.queue')
+    ])
+    .spread(function(server, sender) {
+      server.bind({
+        method: 'testInterceptor'
+      }, function() { return true; });
+
+      return sender.send({ method: 'testInterceptor', params: [ 'notANumber' ] }, {
+        properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+      });
+    });
+  });
+
+}); // interceptor
+
 }); // server

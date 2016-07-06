@@ -15,6 +15,7 @@ before_script:
   - sudo /etc/init.d/qpidd restart
   - sudo qpid-config add exchange topic rpc.request
   - sudo qpid-config add exchange topic rpc.response
+  - sudo qpid-config add queue rpc.request.queue
 
 script:
   - make coverage
