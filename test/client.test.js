@@ -242,26 +242,23 @@ describe('notify', function() {
 
   it('should support request overrides when sending a raw request', function(done) {
     return Promise.all([
-      test.client.createRpcServer('rpc.request'),
       test.client.createRpcClient('rpc.request'),
-      test.client.createReceiver('amq.topic')
+      test.client.createReceiver('rpc.request')
     ])
-    .spread(function(server, client, receiver) {
+    .spread(function(client, receiver) {
       receiver.on('message', function(m) {
-        expect(m.body).to.eql({ result: 'success' });
-        done();
-      });
+        expect(m.properties.subject).to.eql('donkeys');
+        expect(m.body).to.eql({
+          method: 'testNotification',
+          params: [ 1, 'two', false ]
+        });
 
-      server.bind('testNotification', function(one, two, three) {
-        expect(one).to.eql(1);
-        expect(two).to.eql('two');
-        expect(three).to.eql(false);
-        return 'success';
+        done();
       });
 
       return client.notify(
         { method: 'testNotification', params: [ 1, 'two', false ]},
-        { properties: { replyTo: 'amq.topic' } }
+        { properties: { subject: 'donkeys' } }
       );
     });
   });
@@ -315,6 +312,27 @@ describe('errors', function() {
       .then(function(client) {
         return expect(client.call('testMethod'))
           .to.be.rejectedWith(errors.RequestTimeoutError, 'Request timed out');
+      });
+  });
+
+  it('should allow using RequestTimeoutError as a catch filter', function(done) {
+    return test.client.createRpcClient('rpc.request', { timeout: 50 })
+      .then(function(client) { return client.call('testMethod'); })
+      .catch(errors.RequestTimeoutError, function(err) {
+        done();
+      })
+      .catch(function(err) {
+        console.log(err);
+        done('this should not be called');
+      });
+  });
+
+  it('should throw an error if notify was used with a provided replyTo address (raw object)', function() {
+    return test.client.createRpcClient('rpc.request', { timeout: 50 })
+      .then(function(client) {
+        expect(function() {
+          client.notify({ method: 'testMethod' }, { properties: { replyTo: 'bad.dog' } });
+        }).to.throw(errors.BadRequestError, 'notify must not have a replyTo');
       });
   });
 
