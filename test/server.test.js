@@ -2,7 +2,7 @@
 var Promise = require('bluebird'),
     amqp = require('amqp10'),
     rpc = require('../lib'),
-    errors = require('../lib/errors'),
+    errors = rpc.Errors,
     ErrorCode = errors.ErrorCode,
     config = require('./config'),
     expect = require('chai').expect;
