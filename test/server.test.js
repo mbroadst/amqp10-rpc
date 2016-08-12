@@ -468,6 +468,7 @@ describe('validation', function() {
 
   it('should return an error if validation fails', function(done) {
     test.receiver.on('message', function(m) {
+      console.dir(m.body, { depth: null });
       expect(m.body).to.have.key('error');
       done();
     });
