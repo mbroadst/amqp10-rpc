@@ -91,7 +91,7 @@ describe('errors', function() {
       done();
     });
 
-    return Promise.all([
+    Promise.all([
       test.client.createRpcServer('rpc.request'),
       test.client.createSender('rpc.request')
     ])
@@ -108,7 +108,7 @@ describe('errors', function() {
       done();
     });
 
-    return Promise.all([
+    Promise.all([
       test.client.createRpcServer('rpc.request'),
       test.client.createSender('rpc.request')
     ])
@@ -120,7 +120,7 @@ describe('errors', function() {
   });
 
   it('should print errors to log if no replyTo or correlationId exist', function(done) {
-    return Promise.all([
+    Promise.all([
       test.client.createRpcServer('rpc.request'),
       test.client.createSender('rpc.request')
     ])
@@ -142,7 +142,7 @@ describe('errors', function() {
       done();
     });
 
-    return Promise.all([
+    Promise.all([
       test.client.createRpcServer('rpc.request'),
       test.client.createSender('rpc.request')
     ])
@@ -168,7 +168,7 @@ describe('basic behavior', function() {
 
   it('should allow binding a method to an rpc server', function(done) {
     test.receiver.on('message', function(m) { expectResult(m, 'llama', null); done(); });
-    return test.client.createRpcServer('rpc.request')
+    test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function() {});
         return test.client.createSender('rpc.request');
@@ -182,7 +182,7 @@ describe('basic behavior', function() {
 
   it('should allow binding a named method to an rpc server', function(done) {
     test.receiver.on('message', function(m) { expectResult(m, 'llama', null); done(); });
-    return test.client.createRpcServer('rpc.request')
+    test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind(function testMethod() {});
         return test.client.createSender('rpc.request');
@@ -196,7 +196,7 @@ describe('basic behavior', function() {
 
   it('should allow binding a method to an rpc server using a definition object', function(done) {
     test.receiver.on('message', function(m) { expectResult(m, 'llama', null); done(); });
-    return test.client.createRpcServer('rpc.request')
+    test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind({ method: 'testMethod' }, function() {});
         return test.client.createSender('rpc.request');
@@ -210,7 +210,7 @@ describe('basic behavior', function() {
 
   it('should allow binding a method with parameters', function(done) {
     test.receiver.on('message', function(m) { expectResult(m, 'llama', null); done(); });
-    return test.client.createRpcServer('rpc.request')
+    test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function(one, two, three) {
           expect(one).to.eql(1);
@@ -229,7 +229,7 @@ describe('basic behavior', function() {
 
   it('should allow binding a method with parameters (by name)', function(done) {
     test.receiver.on('message', function(m) { expectResult(m, 'llama', null); done(); });
-    return test.client.createRpcServer('rpc.request')
+    test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function(one, two, three) {
           expect(one).to.eql(1);
@@ -255,7 +255,7 @@ describe('basic behavior', function() {
       done();
     });
 
-    return test.client.createRpcServer('rpc.request')
+    test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function() { return 'hello world'; });
         return test.client.createSender('rpc.request');
@@ -273,7 +273,7 @@ describe('basic behavior', function() {
       done();
     });
 
-    return test.client.createRpcServer('rpc.request')
+    test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function() { return Promise.resolve('hello world'); });
         return test.client.createSender('rpc.request');
@@ -287,7 +287,7 @@ describe('basic behavior', function() {
 
   it('should not return a value for notifications (no replyTo or correlationId)', function(done) {
     test.receiver.on('message', function(m) { expect(m).to.not.exist; });
-    return test.client.createRpcServer('rpc.request')
+    test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function() {
           setTimeout(done, 50);
@@ -305,7 +305,7 @@ describe('basic behavior', function() {
       done();
     });
 
-    return test.client.createRpcServer('rpc.request')
+    test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function() { return 'hello world'; });
         return test.client.createSender('rpc.request');
@@ -328,7 +328,7 @@ describe('basic behavior', function() {
       done();
     });
 
-    return test.client.createRpcServer('rpc.request')
+    test.client.createRpcServer('rpc.request')
       .then(function(server) {
         server.bind('testMethod', function() { return { method: 'anotherMethod', params: [] }; });
         return test.client.createSender('rpc.request');
@@ -367,7 +367,7 @@ describe('batch messages', function() {
       done();
     });
 
-    return test.client.createSender('rpc.request')
+    test.client.createSender('rpc.request')
       .then(function(sender) {
         return sender.send([
           { method: 'firstMethod' },
@@ -391,7 +391,7 @@ describe('batch messages', function() {
       done();
     });
 
-    return test.client.createSender('rpc.request')
+    test.client.createSender('rpc.request')
       .then(function(sender) {
         return sender.send([
           { method: 'firstMethod' },
@@ -458,7 +458,7 @@ describe('validation', function() {
       done();
     });
 
-    return test.client.createSender('rpc.request')
+    test.client.createSender('rpc.request')
       .then(function(sender) {
         return sender.send({ method: 'testMethod', params: [ 1901, 'two', false ] }, {
           properties: { replyTo: 'rpc.response', correlationId: 'llama' }
@@ -468,12 +468,11 @@ describe('validation', function() {
 
   it('should return an error if validation fails', function(done) {
     test.receiver.on('message', function(m) {
-      console.dir(m.body, { depth: null });
       expect(m.body).to.have.key('error');
       done();
     });
 
-    return test.client.createSender('rpc.request')
+    test.client.createSender('rpc.request')
       .then(function(sender) {
         return sender.send({ method: 'testMethod', params: [ 'notANumber', -1, 'notABoolean' ] }, {
           properties: { replyTo: 'rpc.response', correlationId: 'llama' }
@@ -503,7 +502,7 @@ describe('interceptor', function() {
       return false;
     };
 
-    return Promise.all([
+    Promise.all([
       test.client.createRpcServer('rpc.request.queue', { interceptor: interceptor }),
       test.client.createSender('rpc.request.queue')
     ])

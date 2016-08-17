@@ -43,7 +43,7 @@ describe('call', function() {
   });
 
   it('should support redirecting responses to predefined address', function(done) {
-    return Promise.all([
+    Promise.all([
       test.client.createReceiver('rpc.response'),
       test.client.createRpcServer('rpc.request'),
       test.client.createRpcClient('rpc.request', { responseAddress: 'rpc.response' })
@@ -149,7 +149,7 @@ describe('notify', function() {
   afterEach(function() { return test.teardown(); });
 
   it('should support notification', function(done) {
-    return Promise.all([
+    Promise.all([
       test.client.createRpcServer('rpc.request'),
       test.client.createRpcClient('rpc.request')
     ])
@@ -160,7 +160,7 @@ describe('notify', function() {
   });
 
   it('should support notification with a single parameter', function(done) {
-    return Promise.all([
+    Promise.all([
       test.client.createRpcServer('rpc.request'),
       test.client.createRpcClient('rpc.request')
     ])
@@ -175,7 +175,7 @@ describe('notify', function() {
   });
 
   it('should support notification with params (array)', function(done) {
-    return Promise.all([
+    Promise.all([
       test.client.createRpcServer('rpc.request'),
       test.client.createRpcClient('rpc.request')
     ])
@@ -190,7 +190,7 @@ describe('notify', function() {
   });
 
   it('should support notification with params (named)', function(done) {
-    return Promise.all([
+    Promise.all([
       test.client.createRpcServer('rpc.request'),
       test.client.createRpcClient('rpc.request')
     ])
@@ -207,7 +207,7 @@ describe('notify', function() {
   });
 
   it('should support notification with params (spread)', function(done) {
-    return Promise.all([
+    Promise.all([
       test.client.createRpcServer('rpc.request'),
       test.client.createRpcClient('rpc.request')
     ])
@@ -224,7 +224,7 @@ describe('notify', function() {
   });
 
   it('should support raw rpc messages as first argument', function(done) {
-    return Promise.all([
+    Promise.all([
       test.client.createRpcServer('rpc.request'),
       test.client.createRpcClient('rpc.request')
     ])
@@ -241,7 +241,7 @@ describe('notify', function() {
   });
 
   it('should support request overrides when sending a raw request', function(done) {
-    return Promise.all([
+    Promise.all([
       test.client.createRpcClient('rpc.request'),
       test.client.createReceiver('rpc.request')
     ])
@@ -264,7 +264,7 @@ describe('notify', function() {
   });
 
   it('should support batch notifications', function(done) {
-    return Promise.all([
+    Promise.all([
       test.client.createRpcServer('rpc.request'),
       test.client.createRpcClient('rpc.request')
     ])
@@ -316,7 +316,7 @@ describe('errors', function() {
   });
 
   it('should allow using RequestTimeoutError as a catch filter', function(done) {
-    return test.client.createRpcClient('rpc.request', { timeout: 50 })
+    test.client.createRpcClient('rpc.request', { timeout: 50 })
       .then(function(client) { return client.call('testMethod'); })
       .catch(errors.RequestTimeoutError, function(err) {
         done();
