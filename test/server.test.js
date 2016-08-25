@@ -517,6 +517,37 @@ describe('interceptor', function() {
     });
   });
 
+  it('should allow method-level interceptors', function(done) {
+    var received = 0;
+    test.receiver.on('message', function(m) { done('this should not happen'); });
+    var interceptor = function(receiver, message, request) {
+      if (received === 0) {
+        receiver.release(message);
+        received++;
+        return false;
+      }
+
+      receiver.accept(message);
+      process.nextTick(function() { done(); });
+      return false;
+    };
+
+    Promise.all([
+      test.client.createRpcServer('rpc.request.queue'),
+      test.client.createSender('rpc.request.queue')
+    ])
+    .spread(function(server, sender) {
+      server.bind({
+        method: 'testInterceptor',
+        interceptor: interceptor
+      }, function() { return true; });
+
+      return sender.send({ method: 'testInterceptor', params: [ 'notANumber' ] }, {
+        properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+      });
+    });
+  });
+
 }); // interceptor
 
 }); // server
