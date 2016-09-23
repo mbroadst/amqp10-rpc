@@ -1,6 +1,6 @@
 {
   "name": "amqp10-rpc",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "an rpc server and client implementation for node-amqp10",
   "main": "lib/index.js",
   "scripts": {
