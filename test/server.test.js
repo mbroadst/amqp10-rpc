@@ -136,6 +136,54 @@ describe('errors', function() {
     });
   });
 
+  it('should return an error if an invalid method is specified', function(done) {
+    test.receiver.on('message', function(m) {
+      expectError(m, 'llama', ErrorCode.MethodNotFound, 'No such method: invalidMethod');
+      done();
+    });
+
+    Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createSender('rpc.request')
+    ])
+    .spread(function(server, sender) {
+      server.bind('testMethod', function() {
+        var err = new Error('an error occurred');
+        err.isOperational = true;
+        throw err;
+      });
+
+      return sender.send({ method: 'invalidMethod' }, {
+        properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+      });
+    });
+  });
+
+  it('should allow user to disable unknown method errors', function(done) {
+    test.receiver.on('message', function(m) {
+      expectError(m, 'llama', ErrorCode.MethodNotFound, 'No such method: invalidMethod');
+      done('Error message was returned when it should not be');
+    });
+
+    Promise.all([
+      test.client.createRpcServer('rpc.request', { ignoreUnknownMethods: true }),
+      test.client.createSender('rpc.request')
+    ])
+    .spread(function(server, sender) {
+      server.bind('testMethod', function() {
+        var err = new Error('an error occurred');
+        err.isOperational = true;
+        throw err;
+      });
+
+      return sender.send({ method: 'invalidMethod' }, {
+        properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+      });
+    })
+    .delay(400) // TODO: there must be a better way
+    .then(function() { done(); });
+  });
+
   it('should catch operational errors and return them as error responses', function(done) {
     test.receiver.on('message', function(m) {
       expectError(m, 'llama', ErrorCode.InternalError, 'an error occurred');
