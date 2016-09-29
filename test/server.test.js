@@ -340,6 +340,41 @@ describe('basic behavior', function() {
       });
   });
 
+  it('should support link options on server link creation', function(done) {
+    var receiveCount = 0;
+    test.receiver.on('message', function(m) {
+      expectResult(m, 'llama', 'works');
+      receiveCount++;
+
+      if (receiveCount === 3) {
+        // drain the queue
+        receiveCount = 0;
+        test.client.createReceiver('rpc.request.queue')
+          .then(function(receiver) {
+            receiver.on('message', function(msg) {
+              expect(msg.body).to.eql({ method: 'rpcMethod' });
+              expect(msg.properties.correlationId).to.eql('llama');
+              receiveCount++;
+              if (receiveCount === 3) done();
+            });
+          });
+      }
+    });
+
+    test.client.createRpcServer('rpc.request.queue' , { attach: { source: { distributionMode: 'copy' } } })
+      .then(function(server) {
+        server.bind('rpcMethod', function() { return 'works'; });
+        return test.client.createSender('rpc.request.queue');
+      })
+      .then(function(sender) {
+        for (var i = 0; i < 3; ++i) {
+          sender.send({ method: 'rpcMethod' }, {
+            properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+          });
+        }
+      });
+  });
+
 }); // basic behavior
 
 describe('batch messages', function() {
