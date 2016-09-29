@@ -119,6 +119,29 @@ describe('errors', function() {
     });
   });
 
+  it('should receive further messages after an error is encountered', function(done) {
+    var receiveCount = 0;
+    test.receiver.on('message', function(m) {
+      receiveCount++;
+      expectError(m, 'llama', ErrorCode.InvalidRequest, 'Missing required property: method');
+      if (receiveCount === 2) done();
+    });
+
+    Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createSender('rpc.request')
+    ])
+    .spread(function(server, sender) {
+      return Promise.all([
+        sender.send({ mthd: 'testMethod' }, {
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' } }),
+        sender.send({ mthd: 'testMethod' }, {
+          properties: { replyTo: 'rpc.response', correlationId: 'llama' } })
+      ]);
+    });
+  });
+
+
   it('should print errors to log if no replyTo or correlationId exist', function(done) {
     Promise.all([
       test.client.createRpcServer('rpc.request'),
