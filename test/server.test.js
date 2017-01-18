@@ -623,6 +623,37 @@ describe('interceptor', function() {
     });
   });
 
+  it('should allow users define a completionInterceptor', function(done) {
+    var received = 0;
+    test.receiver.on('message', function(m) { done('this should not happen'); });
+    var interceptor = function(receiver, message, request, response) {
+      expect(response).to.eql({ result: true });
+      if (received === 0) {
+        receiver.release(message);
+        received++;
+        return false;
+      }
+
+      receiver.accept(message);
+      process.nextTick(function() { done(); });
+      return false;
+    };
+
+    Promise.all([
+      test.client.createRpcServer('rpc.request.queue', { completionInterceptor: interceptor }),
+      test.client.createSender('rpc.request.queue')
+    ])
+    .spread(function(server, sender) {
+      server.bind({
+        method: 'testCompletionInterceptor'
+      }, function() { return true; });
+
+      return sender.send({ method: 'testCompletionInterceptor', params: [ 'notANumber' ] }, {
+        properties: { replyTo: 'rpc.response', correlationId: 'llama' }
+      });
+    });
+  });
+
   it('should allow method-level interceptors', function(done) {
     var received = 0;
     test.receiver.on('message', function(m) { done('this should not happen'); });
