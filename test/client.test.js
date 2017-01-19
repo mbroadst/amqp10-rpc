@@ -338,4 +338,48 @@ describe('errors', function() {
 
 }); // errors
 
+describe('interceptor', function() {
+  before(function() { amqp.use(rpc()); });
+  beforeEach(function() { return test.setup(); });
+  afterEach(function() { return test.teardown(); });
+
+  it('should support a defined `interceptor` function for modification of the sent request', function(done) {
+    var interceptor = function(client, correlator, request) {
+      expect(request.body.params[0]).to.eql('llamas');
+      request.body.params[0] = 'donkeys';
+      return true;
+    };
+
+    Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request', { interceptor: interceptor })
+    ])
+    .spread(function(server, client) {
+      server.bind('testMethod', function(data) {
+        expect(data).to.eql('donkeys');
+        process.nextTick(function() { done(); });
+      });
+
+      return client.call('testMethod', 'llamas');
+    });
+  });
+
+  it('should allow prevention of the sent request via an interceptor', function(done) {
+    var interceptor = function(client, correlator, request) {
+      process.nextTick(function() { done(); });
+      return false;
+    };
+
+    Promise.all([
+      test.client.createRpcServer('rpc.request'),
+      test.client.createRpcClient('rpc.request', { interceptor: interceptor })
+    ])
+    .spread(function(server, client) {
+      server.bind('testMethod', function(data) { done('should not be called!'); });
+      return client.call('testMethod', 'llamas');
+    });
+  });
+
+});
+
 }); // client
